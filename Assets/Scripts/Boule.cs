@@ -29,18 +29,31 @@ public class Boule : MonoBehaviour
     [SerializeField, Tooltip("Durée de l'accélération en secondes.")]
     float dureeAcceleration = 1.0f;
 
+    [SerializeField, Tooltip("Durée de la pause en secondes.")]
+    float dureePause = 5.0f;
+
     [SerializeField, Tooltip("Multiplicateur de force appliqué lors de l'accélération.")]
     float multiplicateurForceAcceleration = 15.0f;
+
+    [SerializeField]
+    private Animator animatorSurface;
 
     /// <summary>
     /// Obtient la vélocité actuelle de la boule.
     /// </summary>
     public Vector3 Velocite => rigidbody.linearVelocity;
 
+    public int nombrePieces;
+
+    private float tempsPause;
+    private bool enPause;
+
     private void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
         enAcceleration = false;
+
+        animatorSurface.SetBool("enPause", false);
 
         PlayerInput controles = ControleurJeu.Instance.Controles;
         controles.actions.FindAction("Commencer").performed += CommencerJeu;
@@ -59,6 +72,7 @@ public class Boule : MonoBehaviour
         controles.actions.FindAction("Diriger").performed -= CommencerDirection;
         controles.actions.FindAction("Diriger").canceled -= ArreterDirection;
         controles.actions.FindAction("Accelerer").performed -= UtiliserChargeAcceleration;
+        controles.actions.FindAction("Pause").performed -= FairePause;
     }
 
     /// <summary>
@@ -73,6 +87,7 @@ public class Boule : MonoBehaviour
         controles.actions.FindAction("Diriger").performed += CommencerDirection;
         controles.actions.FindAction("Diriger").canceled += ArreterDirection;
         controles.actions.FindAction("Accelerer").performed += UtiliserChargeAcceleration;
+        controles.actions.FindAction("Pause").performed += FairePause;
         controles.actions.FindAction("Commencer").performed -= CommencerJeu;
 
         rigidbody.useGravity = true;
@@ -122,6 +137,15 @@ public class Boule : MonoBehaviour
         }
     }
 
+    private void FairePause(InputAction.CallbackContext contexte)
+    {
+        if (nombrePieces >= 5 && !enPause)
+        {
+            nombrePieces -= 5;
+            StartCoroutine(CoroutinePause());
+        }
+    }
+
     private IEnumerator AppliquerAcceleration()
     {
         enAcceleration = true;
@@ -134,5 +158,20 @@ public class Boule : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
         enAcceleration = false;
+    }
+
+    private IEnumerator CoroutinePause()
+    {
+        animatorSurface.SetBool("enPause", true);
+        enPause = true;
+
+        float tempsPause = 0.0f;
+        while (tempsPause < dureePause)
+        {
+            tempsPause += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+        animatorSurface.SetBool("enPause", false);
+        enPause = false;
     }
 }
